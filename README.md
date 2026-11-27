@@ -1,6 +1,6 @@
 # graytag.github.io
 
-Personal landing page — **Graytag, computer vision architect**.
+Personal landing page — **Gray Tag, computer vision architect**.
 
 Live: https://graytag.github.io/
 
