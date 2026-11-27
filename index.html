@@ -1,8 +1,128 @@
-<!doctype html>
-<html>
-  <head><meta charset="utf-8"><title>Gray Tag Pages</title></head>
-  <body>
-    <h1>Hi -n- wait for the news...</h1>
-    <p>It comes soon, a.s.a.possible, just believe</p>
-  </body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Graytag — Computer Vision Architect</title>
+<meta name="description" content="Graytag, computer vision architect.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 11V4h7M21 4h7v7M28 21v7h-7M11 28H4v-7' fill='none' stroke='%236fd8ff' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='3' fill='%236fd8ff'/%3E%3C/svg%3E">
+<style>
+  :root{--bg:#05070c;--ink:#eef2fa;--mute:#8b94a8;--dim:#4d5568;--acc:#6fd8ff}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
+    font-family:"Segoe UI Variable Display","Segoe UI","Inter","Helvetica Neue",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  canvas{position:fixed;inset:0;display:block}
+  .vignette{position:fixed;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 50%, rgba(5,7,12,.2) 0%, rgba(5,7,12,.6) 62%, rgba(5,7,12,.95) 100%)}
+  main{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+  .frame{position:relative;padding:48px 64px}
+  .frame i{position:absolute;width:26px;height:26px;border:0 solid var(--acc);opacity:0;animation:corner 1.2s cubic-bezier(.2,.7,.1,1) forwards}
+  .frame i:nth-child(1){left:0;top:0;border-left-width:2px;border-top-width:2px;transform:translate(-20px,-20px)}
+  .frame i:nth-child(2){right:0;top:0;border-right-width:2px;border-top-width:2px;transform:translate(20px,-20px)}
+  .frame i:nth-child(3){right:0;bottom:0;border-right-width:2px;border-bottom-width:2px;transform:translate(20px,20px)}
+  .frame i:nth-child(4){left:0;bottom:0;border-left-width:2px;border-bottom-width:2px;transform:translate(-20px,20px)}
+  @keyframes corner{to{opacity:.9;transform:none}}
+  .tag{position:absolute;left:0;top:-30px;font:500 12px/1 ui-monospace,"Cascadia Mono",Consolas,monospace;letter-spacing:.12em;
+    color:var(--bg);background:var(--acc);padding:5px 8px;opacity:0;animation:fade .6s ease 1.3s forwards}
+  h1{margin:0;font-size:clamp(56px,11vw,148px);font-weight:200;letter-spacing:-.02em;line-height:1;opacity:0;animation:rise 1.4s cubic-bezier(.2,.7,.1,1) .3s forwards}
+  p.role{margin:22px 0 0;font-size:clamp(13px,1.6vw,19px);letter-spacing:.42em;text-transform:uppercase;color:var(--mute);font-weight:500;
+    opacity:0;animation:rise 1.4s cubic-bezier(.2,.7,.1,1) .7s forwards}
+  @keyframes rise{from{opacity:0;transform:translateY(24px);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+  @keyframes fade{to{opacity:1}}
+  .corner{position:fixed;top:22px;right:24px;z-index:3;display:flex;align-items:center;gap:10px;padding:10px 16px 10px 14px;border-radius:999px;
+    color:var(--ink);text-decoration:none;font-size:14px;letter-spacing:.04em;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);
+    backdrop-filter:blur(8px);transition:border-color .3s, background .3s, transform .3s;opacity:0;animation:fade .8s ease 1.6s forwards}
+  .corner:hover{border-color:rgba(111,216,255,.6);background:rgba(111,216,255,.08);transform:translateY(-1px)}
+  .corner .dot{width:8px;height:8px;border-radius:50%;background:linear-gradient(135deg,#ff8fb3,#6fd8ff);box-shadow:0 0 12px rgba(111,216,255,.7)}
+  .corner .arr{color:var(--acc)}
+  footer{position:fixed;left:0;right:0;bottom:20px;z-index:3;text-align:center;opacity:0;animation:fade .8s ease 1.9s forwards}
+  footer a{color:var(--dim);text-decoration:none;font-size:13px;letter-spacing:.18em;transition:color .3s}
+  footer a:hover{color:var(--acc)}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.01s!important;animation-delay:0s!important}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="vignette"></div>
+
+<a class="corner" href="https://graytag.github.io/brain-vs-chips/" title="Presentation"><span class="dot"></span>Brain Versus Chips <span class="arr">↗</span></a>
+
+<main>
+  <div class="frame">
+    <i></i><i></i><i></i><i></i>
+    <span class="tag">PERSON · 0.99</span>
+    <h1>Graytag</h1>
+    <p class="role">Computer vision architect</p>
+  </div>
+</main>
+
+<footer><a href="https://github.com/graytag">GITHUB.COM/GRAYTAG</a></footer>
+
+<script>
+/* drifting point field with occasional "detections": corner-bracket boxes that lock onto clusters */
+(() => {
+  const c = document.getElementById('c'), g = c.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let W, H, dpr, P = [], boxes = [], mouse = {x:-1e4, y:-1e4};
+  const rnd = (a,b) => a + Math.random()*(b-a);
+  function resize(){
+    dpr = Math.min(devicePixelRatio || 1, 2); W = innerWidth; H = innerHeight;
+    c.width = W*dpr; c.height = H*dpr; c.style.width = W+'px'; c.style.height = H+'px'; g.setTransform(dpr,0,0,dpr,0,0);
+    const n = Math.round(Math.min(220, W*H/9000));
+    P = Array.from({length:n}, () => ({x:rnd(0,W), y:rnd(0,H), vx:rnd(-.12,.12), vy:rnd(-.12,.12), r:rnd(.8,1.9)}));
+  }
+  addEventListener('resize', resize); resize();
+  addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  addEventListener('mouseleave', () => { mouse.x = mouse.y = -1e4; });
+
+  const labels = ['object', 'edge', 'pattern', 'signal', 'feature', 'motion'];
+  function spawnBox(){
+    const p = P[(Math.random()*P.length)|0];
+    // avoid the centre where the name sits
+    if (Math.abs(p.x - W/2) < W*.22 && Math.abs(p.y - H/2) < H*.2) return;
+    const near = P.filter(q => (q.x-p.x)**2 + (q.y-p.y)**2 < 110*110);
+    if (near.length < 3) return;
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; near.forEach(q => { x0=Math.min(x0,q.x); y0=Math.min(y0,q.y); x1=Math.max(x1,q.x); y1=Math.max(y1,q.y); });
+    boxes.push({x0:x0-14, y0:y0-14, x1:x1+14, y1:y1+14, t:0, life:rnd(2.6,4),
+      label: labels[(Math.random()*labels.length)|0] + ' · ' + rnd(.81,.99).toFixed(2)});
+  }
+  let last = performance.now(), nextBox = 1200;
+  function frame(now){
+    const dt = Math.min(50, now-last); last = now;
+    g.clearRect(0,0,W,H);
+    for (const p of P){
+      if (!reduce){ p.x += p.vx*dt*.06; p.y += p.vy*dt*.06; }
+      const dx = p.x-mouse.x, dy = p.y-mouse.y, d2 = dx*dx+dy*dy;
+      if (d2 < 140*140 && d2 > 1){ const f = (1 - Math.sqrt(d2)/140)*.6; p.x += dx/Math.sqrt(d2)*f; p.y += dy/Math.sqrt(d2)*f; }
+      if (p.x<-20) p.x=W+20; if (p.x>W+20) p.x=-20; if (p.y<-20) p.y=H+20; if (p.y>H+20) p.y=-20;
+    }
+    const thr = 120, thr2 = thr*thr;
+    g.lineWidth = 1;
+    for (let i=0;i<P.length;i++){ const a=P[i];
+      for (let j=i+1;j<P.length;j++){ const b=P[j]; const dx=a.x-b.x, dy=a.y-b.y, d2=dx*dx+dy*dy;
+        if (d2<thr2){ g.strokeStyle=`rgba(111,216,255,${(1-Math.sqrt(d2)/thr)*.13})`; g.beginPath(); g.moveTo(a.x,a.y); g.lineTo(b.x,b.y); g.stroke(); } } }
+    for (const p of P){ g.fillStyle='rgba(180,225,255,.55)'; g.beginPath(); g.arc(p.x,p.y,p.r,0,6.283); g.fill(); }
+
+    if (!reduce){ nextBox -= dt; if (nextBox <= 0){ spawnBox(); nextBox = rnd(900, 2000); } }
+    for (let k=boxes.length-1;k>=0;k--){ const b = boxes[k]; b.t += dt/1000;
+      const life = b.t/b.life; if (life >= 1){ boxes.splice(k,1); continue; }
+      const a = life < .15 ? life/.15 : life > .8 ? (1-life)/.2 : 1;
+      const s = 1 + (1 - Math.min(1, b.t/.35))*.25;      // snap-in from slightly larger
+      const cx = (b.x0+b.x1)/2, cy = (b.y0+b.y1)/2, w = (b.x1-b.x0)*s, h = (b.y1-b.y0)*s;
+      const x0 = cx-w/2, y0 = cy-h/2, x1 = cx+w/2, y1 = cy+h/2, L = Math.min(16, w/3, h/3);
+      g.strokeStyle = `rgba(111,216,255,${.85*a})`; g.lineWidth = 1.5; g.beginPath();
+      g.moveTo(x0,y0+L); g.lineTo(x0,y0); g.lineTo(x0+L,y0);
+      g.moveTo(x1-L,y0); g.lineTo(x1,y0); g.lineTo(x1,y0+L);
+      g.moveTo(x1,y1-L); g.lineTo(x1,y1); g.lineTo(x1-L,y1);
+      g.moveTo(x0+L,y1); g.lineTo(x0,y1); g.lineTo(x0,y1-L); g.stroke();
+      g.font = '500 10px ui-monospace, Consolas, monospace'; const tw = g.measureText(b.label).width;
+      g.fillStyle = `rgba(111,216,255,${.85*a})`; g.fillRect(x0, y0-16, tw+10, 14);
+      g.fillStyle = `rgba(5,7,12,${a})`; g.fillText(b.label, x0+5, y0-5);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
 </html>
